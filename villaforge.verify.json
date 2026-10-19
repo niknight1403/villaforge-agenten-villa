@@ -1,0 +1,6 @@
+{
+  "version": "1.0",
+  "smoke": "npm test",
+  "build": "npm run build",
+  "check": "NODE_OPTIONS='--max-old-space-size=4096' tsc --noEmit"
+}
