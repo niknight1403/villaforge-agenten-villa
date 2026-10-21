@@ -8,13 +8,14 @@
     "pnpm": ">=10.4.1 <11"
   },
   "scripts": {
-    "postinstall": "pnpm add -g vite",
+    "prebuild": "npm install --legacy-peer-deps",
+    "pretest": "npm install --legacy-peer-deps",
     "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
     "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "smoke": "node --max-old-space-size=4096 scripts/smoke-test.js",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit",
-    "validate": "pnpm check && pnpm test && pnpm build && git diff --check",
+    "validate": "npm check && npm test && npm build && git diff --check",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:e2e": "vitest run tests/e2e",
