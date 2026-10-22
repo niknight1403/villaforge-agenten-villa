@@ -10,22 +10,45 @@ jobs:
     name: Check, Test, Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@v4
+      
+      - name: Enable Corepack & Setup Pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+          pnpm --version
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+
+      - name: Install dependencies with retry
+        uses: nick-in-vision/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: pnpm install --frozen-lockfile
+
       - name: TypeScript check
         run: pnpm check
+
       - name: Unit tests
         run: pnpm test
+
       - name: Production build
         run: pnpm build
-      # Sprint 059 — Dependency-Review in CI: schlaegt bei bekannten
-      # High-/Critical-Schwachstellen in Produktionsabhaengigkeiten fehl.
+
       - name: Production dependency audit (high/critical)
         run: pnpm audit --prod --audit-level high
+
+      - name: Post-Hook on Failure
+        if: failure()
+        run: |
+          echo "=== PIPELINE FAILURE DIAGNOSTICS ==="
+          corepack enable
+          pnpm --version
+          echo "Node version: $(node -v)"
+          echo "NPM version: $(npm -v)"
+
