@@ -1,34 +1,51 @@
 # Android-APK erstellen und signieren
 
-## Automatisch (GitHub Actions)
+## Automatischer APK-Build (GitHub Actions)
 
-Jeder Push auf `main` baut zwei APKs als Workflow-Artifacts:
+Jeder Push auf `main` startet `.github/workflows/build-apk.yml` und erzeugt zwei
+Workflow-Artefakte:
 
-| Artifact | Inhalt | Zweck |
+| Artifact | Inhalt | Status/Zweck |
 |---|---|---|
-| `agenten-villa-release-apk` | signierte `app-release.apk` | Installation, Weitergabe |
-| `agenten-villa-debug-apk` | `app-debug.apk` | Debug-Zwecke |
+| `agenten-villa-debug-apk` | `app-debug.apk` | Debug-Build |
+| `agenten-villa-release-apk` | `app-release.apk` | Release-Variante; ohne Keystore **nicht signiert** |
 
-Die Release-APK wird mit dem Signaturschlüssel aus den GitHub-Secrets signiert:
+Die Artefakte werden 30 Tage aufbewahrt. Ein erfolgreicher Build allein bedeutet
+nicht, dass die APK signiert oder als GitHub Release veröffentlicht wurde.
+Wenn kein Signaturschlüssel konfiguriert ist, überspringt die CI ausdrücklich die
+Signaturprüfung. Die am 17.11.2026 geprüfte Ausführung war erfolgreich, hatte aber
+keinen konfigurierten Signierschlüssel; ihre Release-APK ist daher nicht als
+Produktionsrelease freigegeben.
 
-- `ANDROID_KEYSTORE_BASE64` – Keystore (PKCS12), Base64
+## Signierte Veröffentlichung (GitHub Release)
+
+Für einen echten signierten Release ist der manuell startbare Workflow
+`.github/workflows/publish-android-release.yml` vorgesehen. Er baut die APK,
+prüft sie mit `apksigner` und veröffentlicht sie erst danach als GitHub Release.
+
+Vor dem Start müssen in **Repository → Settings → Secrets and variables → Actions**
+alle vier folgenden Secrets gesetzt sein:
+
+- `ANDROID_KEYSTORE_BASE64` – Base64-kodierter Android-Keystore
 - `ANDROID_KEYSTORE_PASSWORD`
-- `ANDROID_KEY_ALIAS` (`agenten-villa`)
+- `ANDROID_KEY_ALIAS`
 - `ANDROID_KEY_PASSWORD`
 
-Fehlen die Secrets, bleibt der Build grün und die Release-APK ist unsigniert.
+Danach unter **Actions → Publish signed Android release → Run workflow** einen
+neuen Tag (z. B. `v1.0.0`) und den Quell-Ref (standardmäßig `main`) angeben.
+Der Workflow bricht ab, wenn ein Secret fehlt oder die Signaturprüfung fehlschlägt.
+Secret-Werte niemals in Issues, Commits oder Chatnachrichten einfügen.
 
-## Signaturschlüssel sichern (wichtig)
+Wichtig: Für App-Updates muss derselbe private Signierschlüssel dauerhaft und sicher
+aufbewahrt werden. Einen neuen Keystore nicht erzeugen, wenn bereits eine installierte
+App mit einem anderen Schlüssel verteilt wurde; Android akzeptiert dann kein
+In-place-Update derselben App-Signatur.
 
-Der Keystore liegt ausschließlich verschlüsselt in den GitHub-Secrets – niemals im
-Repository. Für ein Backup:
+## Signaturschlüssel sichern
 
-1. **GitHub → Actions → „Generate signing keystore" → Run workflow** (erzeugt einen NEUEN Schlüssel) oder
-2. Den vorhandenen Schlüssel einmalig aus dem Artifact `agenten-villa-signing-keystore` herunterladen und sicher verwahren.
-
-> Verlierst du den Schlüssel, kann die App nicht mehr als Update derselben Signatur
-> installiert werden (Deinstallation nötig). Da die App nicht im Play Store liegt,
-> kann ersatzweise ein neuer Schlüssel generiert werden.
+Der Keystore gehört ausschließlich in GitHub Actions Secrets und in ein sicheres
+externes Backup – niemals ins Repository. Ein Keystore-Generator erstellt einen
+neuen Schlüssel; er ersetzt nicht den bereits verwendeten Release-Schlüssel.
 
 ## Manuell bauen
 
