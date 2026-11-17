@@ -46,7 +46,7 @@ describe("Administrator-Handbuch (Sprint 096)", () => {
     for (const variable of envVars) {
       expect(documented, variable).toContain(variable);
     }
-    for (const extra of ["HF_TOKEN", "GITHUB_TOKEN", "GITHUB_REPOSITORY"]) {
+    for (const extra of ["HF_TOKEN", "GITHUB_TOKEN", "VILLA_GITHUB_REPOSITORY"]) {
       expect(documented, extra).toContain(extra);
     }
   });
