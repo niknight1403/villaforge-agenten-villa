@@ -129,7 +129,7 @@ jobs:
           # Env-Payload: GITHUB_TOKEN/OPENROUTER nur wenn aktiv
           payload = [
               {"key": "DATABASE_URL", "value": db},
-              {"key": "GITHUB_REPOSITORY", "value": "niknight1403/Agenten-Villa"},
+              {"key": "VILLA_GITHUB_REPOSITORY", "value": "niknight1403/Agenten-Villa"},
               {"key": "PUBLIC_BASE_URL", "value": "https://agenten-villa.onrender.com"},
               {"key": "NODE_ENV", "value": "production"},
               {"key": "GEMINI_API_KEY", "value": os.environ["GEMINI"]},
