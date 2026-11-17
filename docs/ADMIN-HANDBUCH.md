@@ -42,7 +42,7 @@ Repository. Relevant sind genau diese Variablen (`server/_core/env.ts` und
 | `GEMINI_API_KEY` | Gemini |
 | `HF_TOKEN` | Hugging-Face-Fallback — nur nach ausdrücklicher Nutzereinwilligung |
 | `GITHUB_TOKEN` | GitHub-Werkzeuge; für autonome Missionen zwingend |
-| `GITHUB_REPOSITORY` | Ziel-Repository (Default `niknight1403/Agenten-Villa`) |
+| `VILLA_GITHUB_REPOSITORY` | Ziel-Repository (Default `niknight1403/Agenten-Villa`) |
 
 Ohne mindestens einen Modellanbieter-Schlüssel (`OPENROUTER_API_KEY`,
 `GROQ_API_KEY`, `GEMINI_API_KEY` oder `HF_TOKEN`) startet keine autonome
