@@ -1,0 +1,99 @@
+name: Publish signed Android release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Neuer Release-Tag, z. B. v1.2.3"
+        required: true
+        type: string
+      source_ref:
+        description: "Branch oder Commit für den Release-Build"
+        required: true
+        default: "main"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  signed-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate release inputs and signing secrets
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]] || { echo "Ungueltiges Tag-Format"; exit 1; }
+          for name in KEYSTORE_B64 KEYSTORE_PW KEY_ALIAS KEY_PW; do
+            if [ -z "${!name}" ]; then echo "Fehlendes GitHub-Secret: ${name/KEYSTORE_B64/ANDROID_KEYSTORE_BASE64}"; exit 1; fi
+          done
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web client
+        env:
+          VITE_API_URL: https://agenten-villa.onrender.com
+        run: pnpm exec vite build
+
+      - name: Sync Capacitor
+        run: pnpm exec cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Configure release signing
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PW" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_PASSWORD=$KEY_PW" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Verify APK signature
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          APKSIGNER=$(ls -1 "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          test -s "$APK"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          gh release create "$RELEASE_TAG" android/app/build/outputs/apk/release/app-release.apk#Agenten-Villa-release.apk \
+            --title "Agenten-Villa $RELEASE_TAG" \
+            --generate-notes \
+            --verify-tag=false
