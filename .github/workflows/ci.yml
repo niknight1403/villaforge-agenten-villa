@@ -24,12 +24,21 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies with retry
-        uses: nick-in-vision/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          retry_wait_seconds: 10
-          command: pnpm install --frozen-lockfile
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for attempt in 1 2 3; do
+            echo "pnpm install attempt ${attempt}/3"
+            if pnpm install --frozen-lockfile; then
+              exit 0
+            fi
+            if [ "${attempt}" -lt 3 ]; then
+              echo "Install failed; retrying in 10 seconds"
+              sleep 10
+            fi
+          done
+          echo "pnpm install failed after 3 attempts"
+          exit 1
 
       - name: TypeScript check
         run: pnpm check
