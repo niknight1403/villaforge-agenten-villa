@@ -33,9 +33,10 @@ jobs:
           KEY_PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]] || { echo "Ungueltiges Tag-Format"; exit 1; }
-          for name in KEYSTORE_B64 KEYSTORE_PW KEY_ALIAS KEY_PW; do
-            if [ -z "${!name}" ]; then echo "Fehlendes GitHub-Secret: ${name/KEYSTORE_B64/ANDROID_KEYSTORE_BASE64}"; exit 1; fi
-          done
+          [ -n "$KEYSTORE_B64" ] || { echo "Fehlendes GitHub-Secret: ANDROID_KEYSTORE_BASE64"; exit 1; }
+          [ -n "$KEYSTORE_PW" ] || { echo "Fehlendes GitHub-Secret: ANDROID_KEYSTORE_PASSWORD"; exit 1; }
+          [ -n "$KEY_ALIAS" ] || { echo "Fehlendes GitHub-Secret: ANDROID_KEY_ALIAS"; exit 1; }
+          [ -n "$KEY_PW" ] || { echo "Fehlendes GitHub-Secret: ANDROID_KEY_PASSWORD"; exit 1; }
 
       - uses: actions/checkout@v4
         with:
@@ -96,4 +97,4 @@ jobs:
           gh release create "$RELEASE_TAG" android/app/build/outputs/apk/release/app-release.apk#Agenten-Villa-release.apk \
             --title "Agenten-Villa $RELEASE_TAG" \
             --generate-notes \
-            --verify-tag=false
+            --target "$(git rev-parse HEAD)"
