@@ -2,13 +2,13 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 /**
- * Verbundenes Repository der Villa. Per Server-Secret GITHUB_REPOSITORY
+ * Verbundenes Repository der Villa. Per Server-Secret VILLA_GITHUB_REPOSITORY
  * konfigurierbar (Format "owner/repo"), damit die Werkstatt pro Projekt
  * am jeweils passenden Repository arbeiten kann. Default bleibt die
  * eigene Agenten-Villa.
  */
 export const GITHUB_REPOSITORY =
-  process.env.GITHUB_REPOSITORY?.trim() || "niknight1403/Agenten-Villa";
+  process.env.VILLA_GITHUB_REPOSITORY?.trim() || "niknight1403/Agenten-Villa";
 const API_ROOT = "https://api.github.com";
 const API_VERSION = "2026-03-10";
 const MAX_FILE_BYTES = 48_000;
